@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+packaging = "*"
+requests = "*"
+docker = "*"
+natsort = "*"
+python-debian = "*"
+pykg-config = "*"
+rpmfile = "*"
+rpm = "*"
+spdx-tools = "*"
+packageurl-python = "*"
+setuptools = "*"
+validators = "*"
+
+[dev-packages]
+bump2version = "*"
+
+[requires]
+python_version = "3.12"

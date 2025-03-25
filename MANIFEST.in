@@ -1,0 +1,2 @@
+include requirements.txt
+include orca/rpm_checker/*
