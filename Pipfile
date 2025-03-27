@@ -18,6 +18,7 @@ setuptools = "*"
 validators = "*"
 pytest-xdist = "*"
 pytest-cov = "*"
+pip-audit = "*"
 
 [dev-packages]
 bump2version = "*"
