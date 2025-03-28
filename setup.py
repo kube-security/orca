@@ -9,7 +9,7 @@ def read_requirements(filename="requirements.txt"):
 
 setup(
     name='orca',
-    version='0.1.15',
+    version='0.1.16',
     packages=find_packages(),
     install_requires=read_requirements(),
     entry_points={
