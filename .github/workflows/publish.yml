@@ -28,9 +28,10 @@ jobs:
         run: |
           pipenv install --dev
 
-          - name: Run tests
-            run: |
+      - name: Run tests
+        run: |
               pipenv run pytest 
+      
       - name: Build the package
         run: pipenv run python setup.py sdist
 
