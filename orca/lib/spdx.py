@@ -122,8 +122,6 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
     filemap: Dict[str,File] = dict()
     for layer,report in reportMap.items():
         total_cpe.update(report.packages)
-        if layer == "Dockerfile":
-            print("Packages: ",report.packages)
         if report.os is not None:
             if osinfo is not None:
                 print(f"Received multiple entries of os. The latest one is: {report.os} \nOld one was: {osinfo} \n Merging them")

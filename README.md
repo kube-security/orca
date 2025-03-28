@@ -7,6 +7,14 @@ ORCA is a tool designed to analyze obfuscated or obscure container images, provi
 
 Containers often undergo obfuscation or contain altered content, making it difficult for standard tools to generate accurate SBOMs. ORCA scans all container layers and analyzes as many files as possible, even inspecting Dockerfile content for hidden commands.
 
+
+## Requirements
+
+  - `golang` > 1.11
+  - `python` >= 3.11
+  
+
+
 ## Installation
 
 1. **Download the package archive** from the [releases](https://github.com/kube-security/orca/releases) page.
