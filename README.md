@@ -1,5 +1,7 @@
 # ORCA (Obfuscation-Resilient Container Analysis)
 
+![GitHub Container Registry](https://img.shields.io/badge/GHCR-Available-brightgreen?logo=docker&style=for-the-badge)
+[![CI Pipeline](https://github.com/kube-security/orca/actions/workflows/publish.yml/badge.svg)](https://github.com/kube-security/orca/actions)
 
 ORCA is a tool designed to analyze obfuscated or obscure container images, providing reliable Software Bill of Materials (SBOMs) even when traditional tools fail. It addresses the challenge of container image obfuscation and empowers developers and security teams to better manage and secure containerized environments.
 
@@ -16,6 +18,20 @@ Containers often undergo obfuscation or contain altered content, making it diffi
 
 
 ## Installation
+
+The easiest way to use ORCA is via the `kube-security/orca` container image that is available on [GitHub Container Registry (GHCR)](https://github.com/orgs/kube-security/packages/container/orca)
+
+You can use the image as follows
+
+```bash
+docker run -v /var/run/docker.sock:/var/run/docker.sock \
+-v $(pwd)/results:/app/results \
+-v $(pwd)/logs:/app/logs \
+-it ghcr.io/kube-security/orca:latest \
+<container_you_want_to_scan>
+```
+
+### From source 
 
 1. **Download the package archive** from the [releases](https://github.com/kube-security/orca/releases) page.
 
