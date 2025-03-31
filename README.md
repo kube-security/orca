@@ -1,7 +1,8 @@
 # ORCA (Obfuscation-Resilient Container Analysis)
 
-![GitHub Container Registry](https://img.shields.io/badge/GHCR-Available-brightgreen?logo=docker&style=for-the-badge)
 [![CI Pipeline](https://github.com/kube-security/orca/actions/workflows/publish.yml/badge.svg)](https://github.com/kube-security/orca/actions)
+[![License](https://img.shields.io/github/license/kube-security/orca)](https://github.com/kube-security/orca/blob/main/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/kube-security/orca?sort=semver)](https://github.com/kube-security/orca/releases)
 
 ORCA is a tool designed to analyze obfuscated or obscure container images, providing reliable Software Bill of Materials (SBOMs) even when traditional tools fail. It addresses the challenge of container image obfuscation and empowers developers and security teams to better manage and secure containerized environments.
 
@@ -19,7 +20,7 @@ Containers often undergo obfuscation or contain altered content, making it diffi
 
 ## Installation
 
-The easiest way to use ORCA is via the `kube-security/orca` container image that is available on [GitHub Container Registry (GHCR)](https://github.com/orgs/kube-security/packages/container/orca)
+The easiest way to use ORCA is via the `kube-security/orca` container image that is available on [GitHub Container Registry (GHCR)](https://github.com/kube-security/orca/pkgs/container/orca)
 
 You can use the image as follows
 
@@ -93,6 +94,9 @@ Some basic statistics will be shown in the terminal. Additionally two folders: `
     pipenv install
     ```
 
+### Obfucation benchmark dataset
+
+You can compare the results of ORCA against other container scanning tools using our [container obfuscation benchmark](https://github.com/kube-security/container-obfuscation-benchmark).
 ### Contributing
 
 Contributions are welcome!!
