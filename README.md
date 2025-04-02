@@ -4,19 +4,13 @@
 [![License](https://img.shields.io/github/license/kube-security/orca)](https://github.com/kube-security/orca/blob/main/LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/kube-security/orca?sort=semver)](https://github.com/kube-security/orca/releases)
 
+<img src="docs/orca.png" alt="ORCA logo" style="width:30%; height:auto;">
+
 ORCA is a tool designed to analyze obfuscated or obscure container images, providing reliable Software Bill of Materials (SBOMs) even when traditional tools fail. It addresses the challenge of container image obfuscation and empowers developers and security teams to better manage and secure containerized environments.
 
 ## Motivation
 
 Containers often undergo obfuscation or contain altered content, making it difficult for standard tools to generate accurate SBOMs. ORCA scans all container layers and analyzes as many files as possible, even inspecting Dockerfile content for hidden commands.
-
-
-## Requirements
-
-  - `golang` > 1.11
-  - `python` >= 3.11
-  
-
 
 ## Installation
 
