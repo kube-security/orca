@@ -1,4 +1,4 @@
-ARG ORCA_VERSION=0.1.18
+ARG ORCA_VERSION=0.1.19
 
 FROM golang:1.21 AS gobuilder
 
@@ -21,7 +21,7 @@ FROM python:3.12-slim
 
 RUN apt update && apt install golang -y
 WORKDIR /app
-ENV ORCA_VERSION=0.1.18
+ENV ORCA_VERSION=0.1.19
 COPY --from=pythonbuild /app/dist/orca-${ORCA_VERSION}.tar.gz /app
 COPY --from=gobuilder /app/orca/rpm_checker /bin/
 COPY requirements.txt .
