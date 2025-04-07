@@ -77,7 +77,7 @@ def parse_dpkg_from_status(paths,directory,status) -> Dict[PackageInfo,List[str]
                     if fname in paths:
                         files_checked.append(fname)
             except Exception:
-                logger.debug(f"DPKG indexed file not found: {target_file}")
+                #logger.debug(f"DPKG indexed file not found: {target_file}")
                 pass
         # Check binaries
         if package.name in installed_bins:
