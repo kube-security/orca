@@ -8,7 +8,7 @@
 
 ORCA is a tool designed to analyze obfuscated or obscure container images, providing reliable Software Bill of Materials (SBOMs) even when traditional tools fail. It addresses the challenge of container image obfuscation and empowers developers and security teams to better manage and secure containerized environments.
 
-[![asciicast](https://asciinema.org/a/iqqpx2iHC5BZM10hscxn7cayl.svg)](https://asciinema.org/a/iqqpx2iHC5BZM10hscxn7cayl)
+[![asciicast](https://asciinema.org/a/iqqpx2iHC5BZM10hscxn7cayl.png)](https://asciinema.org/a/iqqpx2iHC5BZM10hscxn7cayl)
 
 ## Motivation
 
