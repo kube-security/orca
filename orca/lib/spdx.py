@@ -115,21 +115,11 @@ def generateSPDXFromCPE(containerImage: str,inputPackages: List[PackageInfo],out
     write_file(doc, output_filename,validate=True)
 
 
-def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,VulnerabilityReport],output_filename: str):
-
-    total_cpe = set()
-    osinfo = None
+def generateFileMappingReport(reportMap: Dict[str,VulnerabilityReport])-> Dict[str,File]:
     filemap: Dict[str,File] = dict()
     for layer,report in reportMap.items():
-        total_cpe.update(report.packages)
         layer_id = layer.split("/")[-1]
-        if report.os is not None:
-            if osinfo is not None:
-                print(f"Received multiple entries of os. The latest one is: {report.os} \nOld one was: {osinfo} \n Merging them")
-                for k,v in report.os.items():
-                    osinfo[k] = v
-            else:
-                osinfo = report.os
+        
         for file in report.initial_files:
             fid = file.replace("/","-").replace("_","").replace(" ","")
             sid = f"SPDXRef-File-{layer_id}-{fid}"
@@ -139,19 +129,30 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
                 checksum = Checksum(ChecksumAlgorithm.SHA1,hashlib.sha1("testme".encode()).hexdigest())
                
                 filemap[sid] = File(name=file,spdx_id=sid,comment=f"Layer: {layer}",checksums=[checksum])
-    containerPackage: Package = Package(name=containerImage, download_location=SpdxNone(),license_concluded=SpdxNone(),license_declared=SpdxNone(),spdx_id="SPDXRef-ContainerImage",copyright_text=SpdxNone(),primary_package_purpose=PackagePurpose.CONTAINER)
+    return filemap
+    
 
+def getOsInfo(reportMap: Dict[str,VulnerabilityReport]) -> Dict[str,str]:
+    osinfo = None
+    for layer,report in reportMap.items():
+        if report.os is not None:
+            if osinfo is not None:
+                print(f"Received multiple entries of os. The latest one is: {report.os} \nOld one was: {osinfo} \n Merging them")
+                for k,v in report.os.items():
+                    osinfo[k] = v
+            else:
+                osinfo = report.os
+    return osinfo
 
-    if osinfo is not None and "version" not in osinfo:
-        osinfo = None
-    creation_info = CreationInfo(spdx_version="SPDX-2.3",spdx_id="SPDXRef-DOCUMENT",name="CPE Finder",created=datetime.now(),creators=[Actor(ActorType.ORGANIZATION,"CNAM"),Actor(ActorType.TOOL,"CPE finder")],document_namespace="http://example.com")
+def getTotalCPE(reportMap: Dict[str,VulnerabilityReport]) -> List[PackageInfo]:
+    total_cpe = set()
+    for layer,report in reportMap.items():
+        if len(report.packages) == 1 and report.packages[0] == (None,None):
+            continue
+        total_cpe.update(report.packages)
+    return list(total_cpe)
 
-    packagesmap = {p:map_package(osinfo,idx,p) for idx,p in enumerate(list(total_cpe))}
-   
-    relationships = []
-    relationships.append(Relationship("SPDXRef-DOCUMENT",RelationshipType.DESCRIBES,"SPDXRef-ContainerImage"))       
-
-
+def generateRelationships(reportMap: Dict[str,VulnerabilityReport],filemap: Dict[str,File],packagesmap: Dict[str,Package],osinfo: Dict[str,str]) -> List[Relationship]:
     relmap = {}
     
     for layer,report in reportMap.items():
@@ -169,17 +170,44 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
                 if customid in relmap:
                     continue
                 relmap[customid] = Relationship(packagesmap.get(package).spdx_id,RelationshipType.CONTAINS,filemap.get(sid).spdx_id)
+        relmap["root"] = Relationship("SPDXRef-DOCUMENT",RelationshipType.DESCRIBES,"SPDXRef-ContainerImage")
+    return relmap
+
+
+
+def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,VulnerabilityReport],output_filename: str):
+
+    osinfo = getOsInfo(reportMap)
+    if osinfo is not None and "version" not in osinfo:
+        osinfo = None
+
+    total_cpe = getTotalCPE(reportMap)
+    filemap = generateFileMappingReport(reportMap)
+    packagesmap = {p:map_package(osinfo,idx,p) for idx,p in enumerate(list(total_cpe))}
+    
+    containerPackage: Package = Package(name=containerImage, download_location=SpdxNone(),license_concluded=SpdxNone(),license_declared=SpdxNone(),spdx_id="SPDXRef-ContainerImage",copyright_text=SpdxNone(),primary_package_purpose=PackagePurpose.CONTAINER)
+    creation_info = CreationInfo(spdx_version="SPDX-2.3",spdx_id="SPDXRef-DOCUMENT",name="CPE Finder",created=datetime.now(),creators=[Actor(ActorType.ORGANIZATION,"CNAM"),Actor(ActorType.TOOL,"CPE finder")],document_namespace="http://example.com")
+
+
+   
+    relmap = generateRelationships(reportMap,filemap,packagesmap,osinfo)  
+
+
+    
      
     packages = list(packagesmap.values())
-    relationships.extend(list(relmap.values()))
+    relationships = list(relmap.values())
     packages.append(containerPackage)
     if osinfo is not None:
         osPackage: Package = Package(name=osinfo["name"].split(" ")[0].lower(),
                                  version=osinfo["version"],
                                  download_location=SpdxNone(),license_concluded=SpdxNone(),license_declared=SpdxNone(),spdx_id="SPDXRef-OperatingSystem",copyright_text=SpdxNone(),primary_package_purpose=PackagePurpose.OPERATING_SYSTEM)
         packages.append(osPackage)
+
     files = list(filemap.values())
+    
     doc = Document(creation_info,packages=packages,relationships=relationships,
                    files=files)
+    
     write_file(doc, output_filename,validate=False)
     #write_file(doc, output_filename,validate=True)
