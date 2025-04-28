@@ -96,7 +96,8 @@ def scan_tar(image_tar:str,client:docker.DockerClient,binary_analysis:bool):
             continue
         image_layer = tarfile.open(f"{TMP_DIR}/{layer}")
         image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=tar_remove_links,numeric_owner=True)
-        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",binary_analysis,False)
+        image_files = image_layer.getnames()
+        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",image_files,binary_analysis,False)
         report_by_layer[layer] = report
         # Add dockerfile:
         logger.info(report.summary())
@@ -122,7 +123,8 @@ def scan_image(container:str,client:docker.DockerClient,binary_analysis:bool):
             continue
         image_layer = tarfile.open(f"{TMP_DIR}/{layer}")
         image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=tar_remove_links)
-        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",binary_analysis,False)
+        image_files = image_layer.getnames()
+        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",image_files, binary_analysis,False)
         report_by_layer[layer] = report
 
         logger.info(report.summary())
