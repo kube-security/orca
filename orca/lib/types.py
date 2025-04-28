@@ -86,10 +86,11 @@ class VulnerabilityReport:
 
     def add_package_files(self,package_files: Dict[PackageInfo,List[str]]):
         self.packages.extend(package_files.keys())
-        self.package_files.update(package_files)
+        self.package_files.update({pkg: files for pkg, files in package_files.items() if any(f in self.initial_files for f in files)}) # TODO: probably add the other files to another dict
         fs = [file for file_list in package_files.values() for file in file_list ]
-        self.analyzed_files.update(fs)
-        self.remaining_files = self.remaining_files.difference(fs)
+        fs_in_initial = [f for f in fs if f in self.initial_files]
+        self.analyzed_files.update(fs_in_initial)
+        self.remaining_files = self.remaining_files.difference(fs_in_initial)
     
     def to_json(self):
         json_dict = {}
