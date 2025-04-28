@@ -103,6 +103,11 @@ def scan_tar(image_tar:str,client:docker.DockerClient,binary_analysis:bool):
         logger.info(report.summary())
 
     cpes = extract_cpes_from_dockerfile_with_validation(config)
+    # FIXME: this is a hack to make the report work with the dockerfile. Obfiously Dockerfile commands are not files. 
+    cpes.remaining_files = set()
+    cpes.initial_files = set()
+    cpes.original_files = set()
+    report_by_layer["Dockerfile"] = cpes
     report_by_layer["Dockerfile"] = cpes
 
     # Cleanup: TODO: probably should be done in a separate function
@@ -130,6 +135,11 @@ def scan_image(container:str,client:docker.DockerClient,binary_analysis:bool):
         logger.info(report.summary())
 
     cpes = extract_cpes_from_dockerfile_with_validation(config)
+    report_by_layer["Dockerfile"] = cpes
+    # FIXME: this is a hack to make the report work with the dockerfile. Obfiously Dockerfile commands are not files. 
+    cpes.remaining_files = set()
+    cpes.initial_files = set()
+    cpes.original_files = set()
     report_by_layer["Dockerfile"] = cpes
     # Cleanup: TODO: probably should be done in a separate function
     shutil.rmtree(TMP_DIR,ignore_errors=True)
