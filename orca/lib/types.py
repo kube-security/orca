@@ -110,5 +110,5 @@ class VulnerabilityReport:
         return json_dict
     
     def summary(self) -> str:
-        return f"Found {len(self.original_files)} packages. Indexed {len(self.analyzed_files)} filed over a total of {len(self.original_files)} - Remaining files {len(self.original_files) - len(self.analyzed_files)}"
+        return f"Found {len(self.packages)} packages. Indexed {len(self.analyzed_files)} files over a total of {len(self.original_files)} - Remaining files {len(self.original_files) - len(self.analyzed_files)}"
 
