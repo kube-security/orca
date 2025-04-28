@@ -122,6 +122,7 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
     filemap: Dict[str,File] = dict()
     for layer,report in reportMap.items():
         total_cpe.update(report.packages)
+        layer_id = layer.split("/")[-1]
         if report.os is not None:
             if osinfo is not None:
                 print(f"Received multiple entries of os. The latest one is: {report.os} \nOld one was: {osinfo} \n Merging them")
@@ -129,12 +130,15 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
                     osinfo[k] = v
             else:
                 osinfo = report.os
-        for file in report.analyzed_files:
-            if file in filemap:
-                filemap[file].comment += f"\n Layer: {layer}"
+        for file in report.initial_files:
+            fid = file.replace("/","-").replace("_","").replace(" ","")
+            sid = f"SPDXRef-File-{layer_id}-{fid}"
+            if sid in filemap:
+                filemap[sid].comment += f"\n Layer: {layer_id}"
             else:
                 checksum = Checksum(ChecksumAlgorithm.SHA1,hashlib.sha1("testme".encode()).hexdigest())
-                filemap[file] = File(name=file,spdx_id=f"SPDXRef-File-{file.replace("/","-").replace("_","").replace(" ","")}",comment=f"Layer: {layer}",checksums=[checksum])
+               
+                filemap[sid] = File(name=file,spdx_id=sid,comment=f"Layer: {layer}",checksums=[checksum])
     containerPackage: Package = Package(name=containerImage, download_location=SpdxNone(),license_concluded=SpdxNone(),license_declared=SpdxNone(),spdx_id="SPDXRef-ContainerImage",copyright_text=SpdxNone(),primary_package_purpose=PackagePurpose.CONTAINER)
 
 
@@ -147,15 +151,25 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
     relationships = []
     relationships.append(Relationship("SPDXRef-DOCUMENT",RelationshipType.DESCRIBES,"SPDXRef-ContainerImage"))       
 
+
     relmap = {}
+    
     for layer,report in reportMap.items():
+        layer_id = layer.split("/")[-1]
+
         for package,files in report.package_files.items():
             for file in files:
-                customid = f"{packagesmap.get(package).spdx_id}{filemap.get(file).spdx_id}"
+                fid = file.replace("/","-").replace("_","").replace(" ","")
+                sid = f"SPDXRef-File-{layer_id}-{fid}"
+                filemapid = filemap.get(sid).spdx_id if sid in filemap else None
+                if filemapid is None:
+                    # TODO: this is the case where a file is recorded by ORCA but does not exist in the layer (e.g., updates to a dpkg/status).
+                    continue
+                customid = f"{packagesmap.get(package).spdx_id}{filemapid}"
                 if customid in relmap:
                     continue
-                relmap[customid] = Relationship(packagesmap.get(package).spdx_id,RelationshipType.CONTAINS,filemap.get(file).spdx_id)
- 
+                relmap[customid] = Relationship(packagesmap.get(package).spdx_id,RelationshipType.CONTAINS,filemap.get(sid).spdx_id)
+     
     packages = list(packagesmap.values())
     relationships.extend(list(relmap.values()))
     packages.append(containerPackage)
@@ -165,7 +179,7 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
                                  download_location=SpdxNone(),license_concluded=SpdxNone(),license_declared=SpdxNone(),spdx_id="SPDXRef-OperatingSystem",copyright_text=SpdxNone(),primary_package_purpose=PackagePurpose.OPERATING_SYSTEM)
         packages.append(osPackage)
     files = list(filemap.values())
-    doc = Document(creation_info,packages=packages,#,relationships=relationships,
+    doc = Document(creation_info,packages=packages,relationships=relationships,
                    files=files)
     write_file(doc, output_filename,validate=False)
     #write_file(doc, output_filename,validate=True)
