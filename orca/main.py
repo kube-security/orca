@@ -19,7 +19,7 @@ TMP_DIR = f"{os.getcwd()}/tmpdir"
 
 
 
-def custom_tar_filter(file: tarfile.TarInfo,path):
+def tar_remove_links(file: tarfile.TarInfo,path):
     if not file.islnk() and not file.issym() and not file.isdev() and not file.isdir():
         return file
     return None
@@ -76,11 +76,11 @@ def extract_with_config_and_layers(image_location:str):
     manifests = [x for x in tarf.getmembers() if x.name == "manifest.json"]
     assert len(manifests) == 1
     manifest = manifests[0]
-    tarf.extract(manifest,path=f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+    tarf.extract(manifest,path=f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
     manifestFile = json.load(open(f"{TMP_DIR}/manifest.json"))
     layers = manifestFile[0]['Layers']
     config_path = manifestFile[0]['Config']
-    tarf.extract(config_path,path=f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+    tarf.extract(config_path,path=f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
     config = extract_config(f"{TMP_DIR}/{config_path}")
     return tarf,config,layers
 
@@ -90,18 +90,24 @@ def scan_tar(image_tar:str,client:docker.DockerClient,binary_analysis:bool):
     report_by_layer: Dict[str,VulnerabilityReport] = {}
     for layer in layers:
         logger.info(f"Analyzing layer {layer}")
-        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
         if not os.path.exists(f"{TMP_DIR}/{layer}"):
             logger.error(f"Layer {layer} does not exist on container {image_tar}")
             continue
         image_layer = tarfile.open(f"{TMP_DIR}/{layer}")
-        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=custom_tar_filter,numeric_owner=True)
-        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",binary_analysis,False)
+        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=tar_remove_links,numeric_owner=True)
+        image_files = image_layer.getnames()
+        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",image_files,binary_analysis,False)
         report_by_layer[layer] = report
         # Add dockerfile:
         logger.info(report.summary())
 
     cpes = extract_cpes_from_dockerfile_with_validation(config)
+    # FIXME: this is a hack to make the report work with the dockerfile. Obfiously Dockerfile commands are not files. 
+    cpes.remaining_files = set()
+    cpes.initial_files = set()
+    cpes.original_files = set()
+    report_by_layer["Dockerfile"] = cpes
     report_by_layer["Dockerfile"] = cpes
 
     # Cleanup: TODO: probably should be done in a separate function
@@ -116,18 +122,24 @@ def scan_image(container:str,client:docker.DockerClient,binary_analysis:bool):
     report_by_layer: Dict[str,VulnerabilityReport] = {}
     for layer in layers:
         logger.info(f"Analyzing layer {layer}")
-        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
         if not os.path.exists(f"{TMP_DIR}/{layer}"):
             logger.error(f"Layer {layer} does not exist on container {container}")
             continue
         image_layer = tarfile.open(f"{TMP_DIR}/{layer}")
-        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=custom_tar_filter)
-        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",binary_analysis,False)
+        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=tar_remove_links)
+        image_files = image_layer.getnames()
+        report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",image_files, binary_analysis,False)
         report_by_layer[layer] = report
 
         logger.info(report.summary())
 
     cpes = extract_cpes_from_dockerfile_with_validation(config)
+    report_by_layer["Dockerfile"] = cpes
+    # FIXME: this is a hack to make the report work with the dockerfile. Obfiously Dockerfile commands are not files. 
+    cpes.remaining_files = set()
+    cpes.initial_files = set()
+    cpes.original_files = set()
     report_by_layer["Dockerfile"] = cpes
     # Cleanup: TODO: probably should be done in a separate function
     shutil.rmtree(TMP_DIR,ignore_errors=True)
@@ -157,7 +169,7 @@ def write_logfile(report_by_layer: dict[str, VulnerabilityReport],container:str,
             json.dump(loginfo,fp)
 
 
-def orca(client: docker.DockerClient,output_folder: str,csv:bool,binary_analysis:bool,containers: List[str]):
+def orca(client: docker.DockerClient,output_folder: str,csv:bool,binary_analysis:bool,with_complete_report:bool,containers: List[str]):
  
  if not os.path.exists("logs/"):
     os.mkdir("logs",mode=0o755)
@@ -196,7 +208,7 @@ def orca(client: docker.DockerClient,output_folder: str,csv:bool,binary_analysis
                        fp.write(pkg.to_csv_entry() + "\n")
                    fp.close()
         
-        generateSPDXFromReportMap(container,report_by_layer,f"{output_folder}/orca-{container_usable_name}.json")
+        generateSPDXFromReportMap(container,report_by_layer,f"{output_folder}/orca-{container_usable_name}.json",with_complete_report)
 
 
 def main():
@@ -210,11 +222,14 @@ def main():
         "-d","--dir", type=str, help="Folder where to store results *without ending /*",default="results")
     
     parser.add_argument(
-        "--csv", type=bool, help="Store also a csv file with package information",default=False)
+        "--csv", action='store_true', help="Store also a csv file with package information",default=False)
     
     parser.add_argument(
        "-b","--with-binaries", action='store_true', help="Analyze every binary file (slower). Go binaries are always analyzed",default=False)
-
+    
+    parser.add_argument(
+        "-c","--complete", action='store_true', help="Generate complete SPDX report with relationships (>200MB file is generated)", default=False)
+    
     parser.add_argument(
         "containers", type=str, help="Comma separated list of containers to analyze")
 
@@ -223,8 +238,9 @@ def main():
     output = args.dir
     csv = args.csv
     with_bin = args.with_binaries
+    with_complete_report = args.complete
     containers = args.containers.split(",")
-    orca(client,output,csv,with_bin,containers)
+    orca(client,output,csv,with_bin,with_complete_report,containers)
 
 if __name__ == "__main__":
     main()

@@ -142,11 +142,22 @@ def scan_os(paths: List[str],directory: str)-> None:
         return osinfo 
     return None
 
-def scan_filesystem(directory,analyze_binaries=False,accurate=False) -> VulnerabilityReport:
+def scan_filesystem(directory: str,files,analyze_binaries=False,accurate=False) -> VulnerabilityReport:
+    """
+        Scans the filesystem to identify and analyze files, extract dependencies, and generate a vulnerability report.
+        Args:
+            directory (str): The root directory to scan for files. This directory does not contain links or devices.
+            files (list): A list of files to analyze. This includes also links and devices.
+            analyze_binaries (bool, optional): Whether to analyze binary files for dependencies. Defaults to False.
+            accurate (bool, optional): Whether to perform additional steps to remove duplicate files for more accurate results. Defaults to False.
+        Returns:
+            VulnerabilityReport: A report containing information about identified vulnerabilities, packages, and remaining files.
+       
+    """
     paths: Set[str] = get_filepaths(directory)
 
 
-    report: VulnerabilityReport = VulnerabilityReport(paths)
+    report: VulnerabilityReport = VulnerabilityReport(paths,files)
     
     osinfo = scan_os(report.remaining_files,directory)
     if osinfo is not None:
@@ -201,7 +212,7 @@ def scan_filesystem(directory,analyze_binaries=False,accurate=False) -> Vulnerab
     return report
 
 
-def get_cpes(directory,analyze_binaries=False,store_cpes=True,store_cpe_files=True,accurate=False,analyze_cves=False):
+def get_cpes(directory: str,analyze_binaries=False,store_cpes=True,store_cpe_files=True,accurate=False,analyze_cves=False):
 
     report:VulnerabilityReport = scan_filesystem(directory,analyze_binaries,accurate) 
     pkgset = list(set(report.packages))

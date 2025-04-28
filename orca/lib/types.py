@@ -71,9 +71,14 @@ class PackageInfo:
         return f"{self.name},{self.version},{author}"
 
 class VulnerabilityReport:
-    def __init__(self,paths: Set[str]):
+    def __init__(self,paths: Set[str],files=None):
+        if files is not None:
+            self.original_files = files
+        else:
+            self.original_files = paths
         self.initial_files = paths
         self.remaining_files = paths
+        assert isinstance(self.remaining_files, set), "remaining_files must be a set"
         self.packages: List[PackageInfo] = []
         self.package_files: Dict[PackageInfo,List[str]] = {}
         self.analyzed_files: Set[str] = set()
@@ -81,10 +86,11 @@ class VulnerabilityReport:
 
     def add_package_files(self,package_files: Dict[PackageInfo,List[str]]):
         self.packages.extend(package_files.keys())
-        self.package_files.update(package_files)
+        self.package_files.update({pkg: files for pkg, files in package_files.items() if any(f in self.initial_files for f in files)}) # TODO: probably add the other files to another dict
         fs = [file for file_list in package_files.values() for file in file_list ]
-        self.analyzed_files.update(fs)
-        self.remaining_files = self.remaining_files.difference(fs)
+        fs_in_initial = [f for f in fs if f in self.initial_files]
+        self.analyzed_files.update(fs_in_initial)
+        self.remaining_files = self.remaining_files.difference(fs_in_initial)
     
     def to_json(self):
         json_dict = {}
@@ -105,5 +111,5 @@ class VulnerabilityReport:
         return json_dict
     
     def summary(self) -> str:
-        return f"Found {len(self.packages)} packages. Indexed {len(self.analyzed_files)} filed over a total of {len(self.initial_files)} - Remaining files {len(self.initial_files) - len(self.analyzed_files)}"
+        return f"Found {len(self.packages)} packages. Indexed {len(self.analyzed_files)} files over a total of {len(self.original_files)} - Remaining files {len(self.original_files) - len(self.analyzed_files)}"
 
