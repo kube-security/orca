@@ -175,7 +175,7 @@ def generateRelationships(reportMap: Dict[str,VulnerabilityReport],filemap: Dict
 
 
 
-def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,VulnerabilityReport],output_filename: str):
+def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,VulnerabilityReport],output_filename: str,complete_report: bool):
 
     osinfo = getOsInfo(reportMap)
     if osinfo is not None and "version" not in osinfo:
@@ -190,13 +190,12 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
 
 
    
-    relmap = generateRelationships(reportMap,filemap,packagesmap,osinfo)  
-
+   
 
     
      
     packages = list(packagesmap.values())
-    relationships = list(relmap.values())
+
     packages.append(containerPackage)
     if osinfo is not None:
         osPackage: Package = Package(name=osinfo["name"].split(" ")[0].lower(),
@@ -206,8 +205,13 @@ def generateSPDXFromReportMap(containerImage: str,reportMap: Dict[str,Vulnerabil
 
     files = list(filemap.values())
     
-    doc = Document(creation_info,packages=packages,relationships=relationships,
-                   files=files)
+    doc = None
+    if complete_report:
+        relmap = generateRelationships(reportMap,filemap,packagesmap,osinfo)  
+        relationships = list(relmap.values())
+        doc = Document(creation_info,packages=packages,relationships=relationships,files=files)
+    else:
+        doc = Document(creation_info,packages=packages,files=files)
     
     write_file(doc, output_filename,validate=False)
     #write_file(doc, output_filename,validate=True)

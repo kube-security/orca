@@ -169,7 +169,7 @@ def write_logfile(report_by_layer: dict[str, VulnerabilityReport],container:str,
             json.dump(loginfo,fp)
 
 
-def orca(client: docker.DockerClient,output_folder: str,csv:bool,binary_analysis:bool,containers: List[str]):
+def orca(client: docker.DockerClient,output_folder: str,csv:bool,binary_analysis:bool,with_complete_report:bool,containers: List[str]):
  
  if not os.path.exists("logs/"):
     os.mkdir("logs",mode=0o755)
@@ -208,7 +208,7 @@ def orca(client: docker.DockerClient,output_folder: str,csv:bool,binary_analysis
                        fp.write(pkg.to_csv_entry() + "\n")
                    fp.close()
         
-        generateSPDXFromReportMap(container,report_by_layer,f"{output_folder}/orca-{container_usable_name}.json")
+        generateSPDXFromReportMap(container,report_by_layer,f"{output_folder}/orca-{container_usable_name}.json",with_complete_report)
 
 
 def main():
@@ -222,11 +222,14 @@ def main():
         "-d","--dir", type=str, help="Folder where to store results *without ending /*",default="results")
     
     parser.add_argument(
-        "--csv", type=bool, help="Store also a csv file with package information",default=False)
+        "--csv", action='store_true', help="Store also a csv file with package information",default=False)
     
     parser.add_argument(
        "-b","--with-binaries", action='store_true', help="Analyze every binary file (slower). Go binaries are always analyzed",default=False)
-
+    
+    parser.add_argument(
+        "-c","--complete", action='store_true', help="Generate complete SPDX report with relationships (>200MB file is generated)", default=False)
+    
     parser.add_argument(
         "containers", type=str, help="Comma separated list of containers to analyze")
 
@@ -235,8 +238,9 @@ def main():
     output = args.dir
     csv = args.csv
     with_bin = args.with_binaries
+    with_complete_report = args.complete
     containers = args.containers.split(",")
-    orca(client,output,csv,with_bin,containers)
+    orca(client,output,csv,with_bin,with_complete_report,containers)
 
 if __name__ == "__main__":
     main()
