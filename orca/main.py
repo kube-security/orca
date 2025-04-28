@@ -19,7 +19,7 @@ TMP_DIR = f"{os.getcwd()}/tmpdir"
 
 
 
-def custom_tar_filter(file: tarfile.TarInfo,path):
+def tar_remove_links(file: tarfile.TarInfo,path):
     if not file.islnk() and not file.issym() and not file.isdev() and not file.isdir():
         return file
     return None
@@ -76,11 +76,11 @@ def extract_with_config_and_layers(image_location:str):
     manifests = [x for x in tarf.getmembers() if x.name == "manifest.json"]
     assert len(manifests) == 1
     manifest = manifests[0]
-    tarf.extract(manifest,path=f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+    tarf.extract(manifest,path=f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
     manifestFile = json.load(open(f"{TMP_DIR}/manifest.json"))
     layers = manifestFile[0]['Layers']
     config_path = manifestFile[0]['Config']
-    tarf.extract(config_path,path=f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+    tarf.extract(config_path,path=f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
     config = extract_config(f"{TMP_DIR}/{config_path}")
     return tarf,config,layers
 
@@ -90,12 +90,12 @@ def scan_tar(image_tar:str,client:docker.DockerClient,binary_analysis:bool):
     report_by_layer: Dict[str,VulnerabilityReport] = {}
     for layer in layers:
         logger.info(f"Analyzing layer {layer}")
-        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
         if not os.path.exists(f"{TMP_DIR}/{layer}"):
             logger.error(f"Layer {layer} does not exist on container {image_tar}")
             continue
         image_layer = tarfile.open(f"{TMP_DIR}/{layer}")
-        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=custom_tar_filter,numeric_owner=True)
+        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=tar_remove_links,numeric_owner=True)
         report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",binary_analysis,False)
         report_by_layer[layer] = report
         # Add dockerfile:
@@ -116,12 +116,12 @@ def scan_image(container:str,client:docker.DockerClient,binary_analysis:bool):
     report_by_layer: Dict[str,VulnerabilityReport] = {}
     for layer in layers:
         logger.info(f"Analyzing layer {layer}")
-        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=custom_tar_filter)
+        layers_archive.extract(layer,f"{TMP_DIR}",set_attrs=False,filter=tar_remove_links)
         if not os.path.exists(f"{TMP_DIR}/{layer}"):
             logger.error(f"Layer {layer} does not exist on container {container}")
             continue
         image_layer = tarfile.open(f"{TMP_DIR}/{layer}")
-        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=custom_tar_filter)
+        image_layer.extractall(f"{TMP_DIR}/{layer}_layer",filter=tar_remove_links)
         report = scan_filesystem(f"{TMP_DIR}/{layer}_layer",binary_analysis,False)
         report_by_layer[layer] = report
 
