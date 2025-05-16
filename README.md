@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/orca.png" alt="ORCA logo" style="width:20%; height:auto;">
+<img src="docs/orca.png" alt="ORCA logo" style="width:35%; height:auto;">
 </p>
 
 # ORCA (Obscuration-Resilient Container Analysis)
