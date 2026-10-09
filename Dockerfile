@@ -1,6 +1,6 @@
 ARG ORCA_VERSION=0.1.20
 
-FROM golang:1.21 AS gobuilder
+FROM golang:1.26 AS gobuilder
 
 WORKDIR /app
 
